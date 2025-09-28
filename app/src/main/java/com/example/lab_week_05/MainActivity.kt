@@ -2,7 +2,7 @@ package com.example.lab_week_05
 
 import android.os.Bundle
 import android.util.Log
-import android.view.View
+import android.widget.ImageView
 import android.widget.TextView
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
@@ -31,12 +31,13 @@ class MainActivity : AppCompatActivity() {
             .build()
     }
 
-
     private val catApiService by lazy {
         retrofit.create(CatApiService::class.java)
     }
 
     private lateinit var apiResponseView: TextView
+    private lateinit var imageResultView: ImageView
+    private val imageLoader: ImageLoader by lazy { GlideLoader(this) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -44,8 +45,9 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         apiResponseView = findViewById(R.id.api_response)
+        imageResultView = findViewById(R.id.image_result)
 
-        val rootView: View = findViewById(android.R.id.content)
+        val rootView = findViewById<android.view.View>(android.R.id.content)
         ViewCompat.setOnApplyWindowInsetsListener(rootView) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
@@ -68,11 +70,15 @@ class MainActivity : AppCompatActivity() {
             ) {
                 if (response.isSuccessful) {
                     val image = response.body()
-                    val firstImage = image?.firstOrNull()?.imageUrl ?: "No URL"
-                    apiResponseView.text = getString(R.string.image_placeholder, firstImage)
+                    val firstImage = image?.firstOrNull()?.imageUrl.orEmpty()
 
-                    // debug logging
-                    Log.d(MAIN_ACTIVITY, "First image url: $firstImage")
+                    if (firstImage.isNotBlank()) {
+                        apiResponseView.text = getString(R.string.image_placeholder, firstImage)
+                        imageLoader.loadImage(firstImage, imageResultView)
+                        Log.d(MAIN_ACTIVITY, "First image url: $firstImage")
+                    } else {
+                        Log.d(MAIN_ACTIVITY, "Missing image URL")
+                    }
                 } else {
                     Log.e(
                         MAIN_ACTIVITY,
@@ -82,7 +88,6 @@ class MainActivity : AppCompatActivity() {
             }
         })
     }
-
 
     companion object {
         const val MAIN_ACTIVITY = "MAIN_ACTIVITY"
